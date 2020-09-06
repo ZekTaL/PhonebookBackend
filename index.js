@@ -1,7 +1,9 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
+const Person = require('./models/person')
 
 app.use(express.static('build'))
 app.use(express.json())
@@ -53,28 +55,34 @@ app.get('/', (req, res) => {
 
 // INFO PAGE
 app.get('/info', (req, res) => {
-    const infoPage = `Phonebook has info for ${persons.length} people!<p>${new Date}`
+    const infoPage = `Phonebook has info for ${Person.length} people!<p>${new Date}`
     res.send(infoPage)
 })
   
 // GET ALL PERSONS
 app.get('/api/persons', (req, res) => {
-    res.json(persons)
+    Person.find({})
+    .then(result => {
+      if (result.length > 0)
+      {
+        console.log('Phonebook:')
+        result.forEach(person => {
+          console.log(`${person.name} <> ${person.number}`)
+        })
+      }
+      else
+      {
+        console.log('Phonebook is still empty!')
+      }  
+    })
+    .catch(error => console.log(error))
 })
 
 // GET A SINGLE PERSON
 app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const person = persons.find(p => p.id === id)
-
-    if (person) 
-    {    
-        response.json(person)  
-    } 
-    else 
-    {    
-        response.status(404).end()  
-    }
+    Person.findById(request.params.id).then(person => {
+        console.log(`${person.name} <> ${person.number}`)
+      })
 })
 
 // DELETE 
@@ -93,8 +101,9 @@ app.delete('/api/persons/:id', (request, response) => {
     
 })
 
-// POST
+// POST A PERSON
 app.post('/api/persons', (request, response) => {
+  
     const body = request.body
   
     // check if name or number is null
@@ -104,6 +113,7 @@ app.post('/api/persons', (request, response) => {
       })
     }
 
+    /*
     // check if name is already in the phonebook
     if (persons.find(p => p.name === body.name))
     {
@@ -111,29 +121,22 @@ app.post('/api/persons', (request, response) => {
             error: 'name must be unique!'
         })
     }
-  
-    const person = {
-        name: body.name,
-        number: body.number,
-        id: generateId(),
-    }
-  
-    persons = persons.concat(person)
-  
-    response.json(person)
-})
+    */
 
-// GENERATE RANDOM ID
-const maxID = 1000
-const generateId = () => {
-    const randomId = Math.floor(Math.random() * Math.floor(maxID))
-    return randomId
-}
+    const person = new Person({
+        name: body.name,
+        number: body.number
+    })
+
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+      })
+})
 
 app.use(unknownEndpoint)
 
 // LISTEN PORT
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
