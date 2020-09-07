@@ -4,6 +4,7 @@ const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
 const Person = require('./models/person')
+const { response } = require('express')
 
 app.use(express.static('build'))
 app.use(express.json())
@@ -60,9 +61,10 @@ app.get('/info', (req, res) => {
 })
   
 // GET ALL PERSONS
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (request, response) => {
     Person.find({})
     .then(result => {
+      response.json(result)
       if (result.length > 0)
       {
         console.log('Phonebook:')
@@ -81,6 +83,7 @@ app.get('/api/persons', (req, res) => {
 // GET A SINGLE PERSON
 app.get('/api/persons/:id', (request, response) => {
     Person.findById(request.params.id).then(person => {
+        response.json(person)
         console.log(`${person.name} <> ${person.number}`)
       })
 })
