@@ -4,7 +4,7 @@ const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
 const Person = require('./models/person')
-const { response } = require('express')
+// const { response } = require('express')
 
 app.use(express.static('build'))
 app.use(express.json())
@@ -44,10 +44,6 @@ let persons = [
     }
 ]
 
-// UNKNOWN ENDPOINT
-const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' })
-}
 
 // INDEX PAGE
 app.get('/', (req, res) => {
@@ -81,27 +77,27 @@ app.get('/api/persons', (request, response) => {
 })
 
 // GET A SINGLE PERSON
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
     Person.findById(request.params.id).then(person => {
-        response.json(person)
-        console.log(`${person.name} <> ${person.number}`)
+        if (person)
+        {
+            response.json(person)
+        }
+        else 
+        {        
+            response.status(404).end()      
+        }        
       })
+      .catch(error => next(error))
 })
 
 // DELETE 
-app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const personToDelete = persons.find(p => p.id == id)
-    if (personToDelete)
-    {
-        persons = persons.filter(p => p.id !== id)
-        response.status(204).end()
-    }
-    else
-    {
-        response.status(404).end()
-    }
-    
+app.delete('/api/persons/:id', (request, response, next) => {
+    Person.findByIdAndRemove(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))  
 })
 
 // POST A PERSON
@@ -136,7 +132,41 @@ app.post('/api/persons', (request, response) => {
       })
 })
 
+// UPDATE PERSON 
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+  
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+  
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+      .then(updatedPerson => {
+        response.json(updatedPerson)
+      })
+      .catch(error => next(error))
+  })
+
+// UNKNOWN ENDPOINT
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
+
 app.use(unknownEndpoint)
+
+// ERROR HANDLERS
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+  
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    } 
+  
+    next(error)
+  }
+  
+  app.use(errorHandler)
 
 // LISTEN PORT
 const PORT = process.env.PORT
