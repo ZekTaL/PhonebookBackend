@@ -30,7 +30,7 @@ if (process.argv.length === 3)
       mongoose.connection.close()
     })
     .catch(error => console.log(error))
-  
+
   return
 }
 
@@ -50,7 +50,7 @@ if (process.argv.length === 5)
   })
 
   person.save()
-    .then(result => {
+    .then(() => {
       console.log(`Added '${person.name} <> ${person.number}' to the phonebook`)
       mongoose.connection.close()
     })
